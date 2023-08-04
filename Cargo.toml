@@ -6,4 +6,4 @@ license = "MIT"
 authors = ["sam0x17"]
 description = "super_enum allows for compile-time aggregated enums and an easy synatx for defining 'fields' shared between all enum variants."
 keywords = ["enum", "aggregated", "fields", "macros", "compile-time"]
-repository = ""
+repository = "https://github.com/sam0x17/super_enum"
