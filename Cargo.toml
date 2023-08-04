@@ -1,8 +1,9 @@
 [package]
 name = "super_enum"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+license = "MIT"
+authors = ["sam0x17"]
+description = "super_enum allows for compile-time aggregated enums and an easy synatx for defining 'fields' shared between all enum variants."
+keywords = ["enum", "aggregated", "fields", "macros", "compile-time"]
+repository = ""
