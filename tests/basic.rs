@@ -7,8 +7,8 @@ pub enum Fizz {
 }
 
 #[super_enum]
-#[aggregate(some::path::Foo, some_mod::Bar, Fizz, Buzz)]
 #[fields(my_field: u32)]
+#[aggregate(some::path::Foo, some_mod::Bar, Fizz, Buzz)]
 pub enum MyEnum {
     None,
     Other(i32, bool),
