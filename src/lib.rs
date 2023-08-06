@@ -1,7 +1,20 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, ToTokens};
-use syn::{parse::Nothing, parse2, parse_macro_input, parse_quote, Attribute, ItemEnum, Result};
+use syn::{
+    parenthesized,
+    parse::{Nothing, ParseStream},
+    parse2, parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    Attribute, Error, Field, Ident, ItemEnum, Path, Result, Token, TypePath,
+};
+
+mod keywords {
+    use syn::custom_keyword;
+
+    custom_keyword!(fields);
+    custom_keyword!(aggregate);
+}
 
 #[proc_macro_attribute]
 pub fn super_enum(attr: TokenStream, tokens: TokenStream) -> TokenStream {
@@ -9,18 +22,6 @@ pub fn super_enum(attr: TokenStream, tokens: TokenStream) -> TokenStream {
         Ok(tokens) => tokens.into(),
         Err(err) => err.into_compile_error().into(),
     }
-}
-
-fn attribute_helper(ident: Ident, attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let mut item_enum = parse_macro_input!(tokens as ItemEnum);
-    let attr: TokenStream2 = attr.into();
-    let attr: Attribute = if attr.is_empty() {
-        parse_quote!(#[#ident])
-    } else {
-        parse_quote!(#[#ident(#attr)])
-    };
-    item_enum.attrs.push(attr);
-    item_enum.to_token_stream().into()
 }
 
 #[proc_macro_attribute]
@@ -48,4 +49,68 @@ fn super_enum_internal(
             .collect::<Vec<_>>()
     );
     Ok(quote!())
+}
+
+fn attribute_helper(ident: Ident, attr: TokenStream, tokens: TokenStream) -> TokenStream {
+    let mut item_enum = parse_macro_input!(tokens as ItemEnum);
+    let attr: TokenStream2 = attr.into();
+    let attr: Attribute = if attr.is_empty() {
+        parse_quote!(#[#ident])
+    } else {
+        parse_quote!(#[#ident(#attr)])
+    };
+    item_enum.attrs.push(attr);
+    item_enum.to_token_stream().into()
+}
+
+enum HelperAttr {
+    Aggregate(Punctuated<TypePath, Token![,]>),
+    Fields(Punctuated<Field, Token![,]>),
+    Regular(Attribute),
+}
+
+impl syn::parse::Parse for HelperAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(keywords::aggregate) {
+            input.parse::<keywords::aggregate>()?;
+            let content;
+            parenthesized!(content in input);
+            let paths = content.parse_terminated(TypePath::parse, Token![,])?;
+            Ok(HelperAttr::Aggregate(paths))
+        } else if input.peek(keywords::fields) {
+            input.parse::<keywords::fields>()?;
+            let content;
+            parenthesized!(content in input);
+            let fields = content.parse_terminated(Field::parse_named, Token![,])?;
+            Ok(HelperAttr::Fields(fields))
+        } else if input.peek(Ident) {
+            let path = input.parse::<Path>()?;
+            let content;
+            parenthesized!(content in input);
+            let mut inner_tokens = TokenStream2::new();
+            while !content.is_empty() {
+                inner_tokens.extend([content.parse::<TokenStream2>()?]);
+            }
+            let attribute: Attribute = parse_quote!(#[#path(#inner_tokens)]);
+            Ok(HelperAttr::Regular(attribute))
+        } else {
+            Err(Error::new(input.span(), "Expected `aggregate` or `fields`"))
+        }
+    }
+}
+
+impl ToTokens for HelperAttr {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        match self {
+            HelperAttr::Aggregate(contents) => {
+                let contents = contents.into_iter();
+                tokens.extend([quote!(#[aggregate(#(#contents),*)])])
+            }
+            HelperAttr::Fields(contents) => {
+                let contents = contents.into_iter();
+                tokens.extend([quote!(#[fields(#(#contents),*)])])
+            }
+            HelperAttr::Regular(attr) => tokens.extend([attr.to_token_stream()]),
+        }
+    }
 }
