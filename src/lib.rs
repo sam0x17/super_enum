@@ -85,13 +85,14 @@ impl syn::parse::Parse for HelperAttr {
             Ok(HelperAttr::Fields(fields))
         } else if input.peek(Ident) {
             let path = input.parse::<Path>()?;
-            let content;
-            parenthesized!(content in input);
-            let mut inner_tokens = TokenStream2::new();
-            while !content.is_empty() {
-                inner_tokens.extend([content.parse::<TokenStream2>()?]);
+            if input.is_empty() {
+                return Ok(HelperAttr::Regular(parse_quote!(#[#path])));
             }
-            let attribute: Attribute = parse_quote!(#[#path(#inner_tokens)]);
+            let mut inner_tokens = TokenStream2::new();
+            while !input.is_empty() {
+                inner_tokens.extend([input.parse::<TokenStream2>()?]);
+            }
+            let attribute: Attribute = parse_quote!(#[#path #inner_tokens]);
             Ok(HelperAttr::Regular(attribute))
         } else {
             Err(Error::new(input.span(), "Expected `aggregate` or `fields`"))
@@ -161,10 +162,29 @@ fn test_parse_helper_attr_fields() {
         .unwrap(),
         HelperAttr::Fields(_)
     ));
-    assert!(parse2::<HelperAttr>(quote!(field)).is_err());
-    assert!(parse2::<HelperAttr>(quote!(field[foo: Bar])).is_err());
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(field)).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+    assert!(parse2::<HelperAttr>(quote!(fields[foo: Bar])).is_err());
     assert!(matches!(
         parse2::<HelperAttr>(quote!(field(test))).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+}
+
+#[test]
+fn test_parse_helper_regular() {
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(something)).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(cfg(test))).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(doc = "hello")).unwrap(),
         HelperAttr::Regular(_)
     ));
 }
