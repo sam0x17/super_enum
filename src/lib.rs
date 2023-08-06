@@ -114,3 +114,30 @@ impl ToTokens for HelperAttr {
         }
     }
 }
+
+#[test]
+fn test_parse_help_attr_aggregate() {
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(aggregate())).unwrap(),
+        HelperAttr::Aggregate(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(aggregate(an_ident))).unwrap(),
+        HelperAttr::Aggregate(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(aggregate(
+            some::Long::complex_path,
+            another::Thing,
+            something_else
+        )))
+        .unwrap(),
+        HelperAttr::Aggregate(_)
+    ));
+    assert!(parse2::<HelperAttr>(quote!(aggregate)).is_err());
+    assert!(parse2::<HelperAttr>(quote!(aggregate[test])).is_err());
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(aggregates(test))).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+}
