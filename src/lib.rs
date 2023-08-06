@@ -116,7 +116,7 @@ impl ToTokens for HelperAttr {
 }
 
 #[test]
-fn test_parse_help_attr_aggregate() {
+fn test_parse_helper_attr_aggregate() {
     assert!(matches!(
         parse2::<HelperAttr>(quote!(aggregate())).unwrap(),
         HelperAttr::Aggregate(_)
@@ -138,6 +138,33 @@ fn test_parse_help_attr_aggregate() {
     assert!(parse2::<HelperAttr>(quote!(aggregate[test])).is_err());
     assert!(matches!(
         parse2::<HelperAttr>(quote!(aggregates(test))).unwrap(),
+        HelperAttr::Regular(_)
+    ));
+}
+
+#[test]
+fn test_parse_helper_attr_fields() {
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(fields())).unwrap(),
+        HelperAttr::Fields(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(fields(something: u32))).unwrap(),
+        HelperAttr::Fields(_)
+    ));
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(fields(
+            a: usize,
+            b: Option<u32>,
+            c: bool
+        )))
+        .unwrap(),
+        HelperAttr::Fields(_)
+    ));
+    assert!(parse2::<HelperAttr>(quote!(field)).is_err());
+    assert!(parse2::<HelperAttr>(quote!(field[foo: Bar])).is_err());
+    assert!(matches!(
+        parse2::<HelperAttr>(quote!(field(test))).unwrap(),
         HelperAttr::Regular(_)
     ));
 }
