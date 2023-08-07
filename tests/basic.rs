@@ -1,6 +1,13 @@
 use super_enum::*;
 
 #[super_enum]
+pub enum Other {
+    Red,
+    Blue,
+}
+
+#[super_enum]
+#[aggregate(MyEnum, Other)]
 pub enum Fizz {
     One,
     Two,
@@ -16,9 +23,13 @@ pub enum MyEnum {
 }
 
 #[test]
-fn test_super_enum() {
+fn test_mutual_aggregation() {
     let _a = MyEnum::Two;
     let _b = MyEnum::None;
     let _c = MyEnum::Three;
-    // assert_eq!(a.my_field(), 567);
+    let _a = Fizz::Two;
+    let _b = Fizz::None;
+    let _c = Fizz::Three;
+    let _d = Fizz::Red;
+    let _e = MyEnum::Red;
 }
