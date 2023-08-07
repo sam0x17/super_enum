@@ -46,14 +46,17 @@ pub fn aggregate(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 }
 
 #[doc(hidden)]
+#[allow(non_snake_case)]
 #[import_tokens_attr(format!(
     "{}::__private::macro_magic",
     get_super_enum_path().to_token_stream().to_string()
 ))]
 #[proc_macro_attribute]
-pub fn _aggregate(attr: TokenStream, tokens: TokenStream) -> TokenStream {
+pub fn __aggregate(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     let foreign_enum = parse_macro_input!(attr as ItemEnum);
-    quote!().into()
+    let mut local_enum = parse_macro_input!(tokens as ItemEnum);
+    local_enum.variants.extend(foreign_enum.variants);
+    local_enum.to_token_stream().into()
 }
 
 fn super_enum_internal(
@@ -61,16 +64,26 @@ fn super_enum_internal(
     tokens: impl Into<TokenStream2>,
 ) -> Result<TokenStream2> {
     parse2::<Nothing>(attr.into())?;
-    let item_enum = parse2::<ItemEnum>(tokens.into())?;
-    println!(
-        "attrs: {:?}",
-        item_enum
-            .attrs
-            .iter()
-            .map(|attr| attr.to_token_stream().to_string())
-            .collect::<Vec<_>>()
-    );
-    Ok(quote!())
+    let mut item_enum = parse2::<ItemEnum>(tokens.into())?;
+    let mut final_attrs: Vec<Attribute> = Vec::new();
+    let crate_path = get_super_enum_path();
+    for attr in item_enum.attrs {
+        let helper_attr = parse2::<HelperAttr>(attr.meta.to_token_stream())?;
+        match helper_attr {
+            HelperAttr::Regular(reg) => final_attrs.push(reg),
+            HelperAttr::Aggregate(aggregate) => {
+                for path in aggregate {
+                    final_attrs.push(parse_quote!(#[#crate_path::__aggregate(#path)]));
+                }
+            }
+            HelperAttr::Fields(_) => (), // TODO:
+        }
+    }
+    item_enum.attrs = final_attrs;
+    Ok(quote! {
+        #[#crate_path::__private::macro_magic::export_tokens]
+        #item_enum
+    })
 }
 
 fn attribute_helper(ident: Ident, attr: TokenStream, tokens: TokenStream) -> TokenStream {
