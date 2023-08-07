@@ -1,3 +1,6 @@
+[workspace]
+members = ["macros"]
+
 [package]
 name = "super_enum"
 version = "0.0.1"
@@ -8,11 +11,5 @@ description = "super_enum allows for compile-time aggregated enums and an easy s
 keywords = ["enum", "aggregated", "fields", "macros", "compile-time"]
 repository = "https://github.com/sam0x17/super_enum"
 
-[lib]
-proc-macro = true
-
 [dependencies]
-syn = { version = "2", features = ["full"] }
-proc-macro2 = "1"
-quote = "1"
-macro_magic = { version = "0.4", features = ["proc_support"] }
+super_enum_macros = { path = "macros", version = "0.0.1" }

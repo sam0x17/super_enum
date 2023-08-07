@@ -1,0 +1,17 @@
+[package]
+name = "super_enum_macros"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+authors = ["sam0x17"]
+description = "support macros"
+repository = "https://github.com/sam0x17/super_enum"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+proc-macro2 = "1"
+quote = "1"
+macro_magic = { version = "0.4", features = ["proc_support"] }
